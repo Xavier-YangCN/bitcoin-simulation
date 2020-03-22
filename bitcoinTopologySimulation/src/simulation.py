@@ -7,6 +7,8 @@ import Power2Choices as p2c
 import pprint
 import random
 import sys
+import copy
+import matplotlib.pyplot as plt
 
 
 class Simulation:
@@ -51,7 +53,7 @@ class Simulation:
 
     def run(self, t_start=1, t_end=60, n_iterations=124, plot_first_x_graphs=10,
             avg_paths_after_n_iterations=[10, 25, 50, 75, 100, 125, 150, 175, 200],
-            MAX_OUTBOUND_CONNECTIONS=8, numb_nodes=600):
+            MAX_OUTBOUND_CONNECTIONS=8, numb_nodes=600,get_connectivity_result=10000):
         self.MAX_OUTBOUND_CONNECTIONS = MAX_OUTBOUND_CONNECTIONS
         max_growth_rate = 0.05
         max_reconnect_rate = 0.04
@@ -85,35 +87,40 @@ class Simulation:
                     reconnection_number = random.randint(0, int(max_reconnect_rate * len(self.offline_nodes)))
                     for _ in range(reconnection_number):
                         self._offline_node_gets_online(pop_random_element_from_list(self.offline_nodes))
-            else:
-                finish_simulation_counter += 1
-                if finish_simulation_counter > finish_simulation_counter_max:
-                    if self.outbound_distribution is 'hacky_1':
-                        self._hacky_1()
-                    self.whiteboard.plot_degree()
-                    if (self.connection_strategy is 'geo_bc') or (self.connection_strategy is 'no_geo_bc'):
-                        self.whiteboard.shortest_path_time_histogram_undirected(is_final=True)
-                    else:
-                        self.whiteboard.shortest_path_histogram_undirected(is_final=True)
-                    return self.whiteboard.avg_path_length_plot(self.MAX_OUTBOUND_CONNECTIONS)
+            # else:
+            #     finish_simulation_counter += 1
+            #     if finish_simulation_counter > finish_simulation_counter_max:
+            #         if self.outbound_distribution is 'hacky_1':
+            #             self._hacky_1()
+            #         self.whiteboard.plot_degree()
+            #         if (self.connection_strategy is 'geo_bc') or (self.connection_strategy is 'no_geo_bc'):
+            #             self.whiteboard.shortest_path_time_histogram_undirected(is_final=True)
+            #         else:
+            #             self.whiteboard.shortest_path_histogram_undirected(is_final=True)
+            #         return self.whiteboard.avg_path_length_plot(self.MAX_OUTBOUND_CONNECTIONS)
 
             # plot state of the net
-            if (ii < plot_first_x_graphs) and (finish_simulation_counter == 0):
-                self.whiteboard.plot_net()
+            #if (ii < plot_first_x_graphs) and (finish_simulation_counter == 0):
+            #    self.whiteboard.plot_net()
+            if (len(self.DG.nodes())>=get_connectivity_result):
+                self.get_connectivity_result()
+                return
 
-            if (ii in avg_paths_after_n_iterations) and (finish_simulation_counter == 0):
-                # self.whiteboard.avg_path_length_log()
-                self.whiteboard.plot_degree()
-                if (self.connection_strategy is 'geo_bc') or (self.connection_strategy is 'no_geo_bc'):
-                    self.whiteboard.shortest_path_time_histogram_undirected()
-                else:
-                    self.whiteboard.shortest_path_histogram_undirected()
 
-            if (len(self.DG.node) > numb_nodes) and (finish_simulation_counter == 0):
-                # self.whiteboard.shortest_path_histogram_undirected()
-                # self.whiteboard.avg_path_length_plot(self.MAX_OUTBOUND_CONNECTIONS)
-                # self.whiteboard.save_graph()
-                finish_simulation_counter += 1
+
+            # if (ii in avg_paths_after_n_iterations) and (finish_simulation_counter == 0):
+            #     # self.whiteboard.avg_path_length_log()
+            #     self.whiteboard.plot_degree()
+            #     if (self.connection_strategy is 'geo_bc') or (self.connection_strategy is 'no_geo_bc'):
+            #         self.whiteboard.shortest_path_time_histogram_undirected()
+            #     else:
+            #         self.whiteboard.shortest_path_histogram_undirected()
+
+            # if (len(self.DG.node) > numb_nodes) and (finish_simulation_counter == 0):
+            #     # self.whiteboard.shortest_path_histogram_undirected()
+            #     # self.whiteboard.avg_path_length_plot(self.MAX_OUTBOUND_CONNECTIONS)
+            #     # self.whiteboard.save_graph()
+            #     finish_simulation_counter += 1
 
 
     ############################
@@ -379,6 +386,45 @@ class Simulation:
                 self.DG.node[ii][self.simulation_protocol] = p2c.Power2Choices(ii, self.simulation_time, self.FIXED_DNS)
         for ii in list(self.DG.nodes):
             self._node_updates_outbound_connection(ii)
+
+
+
+    def get_connectivity_result(self):
+        graph=self.DG
+        numb=len(graph.nodes())
+        number_of_iter=1
+        conn_prob=[]
+        current_range=range(1,numb,1000)
+
+        for x in current_range:
+            num = 0
+            com_n = 0
+            for j in range(10):
+                rg=copy.deepcopy(graph)
+                #print(len(rg.nodes()))
+                del_nodes = random.sample(list(rg.nodes()),x)
+                for node in del_nodes:
+                    rg.remove_node(node)
+                if nx.is_connected(rg):
+                    num+=1
+                del rg
+            conn_prob.append(num/number_of_iter)
+            print('delete nodes: ', x, 'prob: ', num/number_of_iter)
+        print(conn_prob)
+        plt.plot(current_range,conn_prob)
+        plt.show()
+
+
+
+        # x=10
+        # del_nodes = random.sample(list(rg.nodes()),x)
+        # for node in del_nodes:
+        #     rg.remove_node(node)
+        # if nx.is_connected(rg)==True:
+        #     print("connected")
+        # else:
+        #     print("disconnected")
+
 
 
 def pop_random_element_from_list(x):

@@ -31,7 +31,8 @@ def big_simulation_bitcoin():
     initial_max = [128]
     # outbound_distributions = ['hacky_1', 'const8_125', 'uniform_1_max', 'normal_mu8_sig4', '1percent',
     #                           'normal_mu_sig_auto', 'const13_125']
-    outbound_distributions = ['const13_125', '1percent']
+    #outbound_distributions = ['const13_125', '1percent']
+    outbound_distributions = ['const8_125']
     connection_strategy = ['stand_bc']
     # connection_strategy = ['stand_bc', 'p2c_min', 'p2c_max', 'geo_bc', 'no_geo_bc]
     max_outbound_connections = [8]
