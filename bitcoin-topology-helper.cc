@@ -33,7 +33,7 @@
 #include <sys/time.h>
 
 static double GetWallTime();
-bool is_connected(std::map<uint32_t, std::vector<uint32_t>> G,int num_of_nodes);
+bool is_connected(std::map<uint32_t, std::vector<uint32_t>> &G,int num_of_nodes,std::vector<int> &delete_nodes);
 static std::vector<bool> visited;
 void DFS(std::map<uint32_t, std::vector<uint32_t>> &G,int v);
 std::vector<int> CreateRandomNums(int min,int max, int num);
@@ -658,6 +658,7 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
   m_regionUploadSpeeds[AUSTRALIA] = 6.1;
   srand (1000);
 
+  
   // Bounds check
   if (m_noMiners > m_totalNoNodes)
   {
@@ -750,6 +751,7 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
     }
   } */
 
+  //noMiners=1;
   //Choose the miners randomly. They should be unique (no miner should be chosen twice).
   //So, remove each chose miner from nodes vector
   for (int i = 0; i < noMiners; i++)
@@ -954,21 +956,33 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
 	    std::cout << "Node " << i << " should have at least " << m_minConnections[i] << " connections but it has only " << m_nodesConnections[i].size() << " connections\n";
     }
   }
-  
-  /*if (is_connected(m_nodesConnections,m_totalNoNodes))
+  /*printf("original_graph\n");
+  for (int i=0;i<m_totalNoNodes;i++)
+  {
+    for(int k=0;k<m_nodesConnections[i].size();++k)
+      printf("%d ",m_nodesConnections[i][k]);
+    printf("\n");
+  }*/
+
+/*
+  if (is_connected(m_nodesConnections,m_totalNoNodes))
   {
     printf("Yes, the graph is full-connected\n");
   }
   else printf("Sorry,the graph is not connected\n");*/
 
-  for (int num_of_delete_nodes=1;num_of_delete_nodes<m_totalNoNodes;++num_of_delete_nodes)
+
+  for (int num_of_delete_nodes=1;num_of_delete_nodes<m_totalNoNodes;num_of_delete_nodes+=(m_totalNoNodes/10))
   {
     int my_num=0;
-    
-    for (int m=0;m<10;++m)
+    std::vector<int> delete_nodes;
+    for (int m=0;m<4;++m)
     { 
       std::map<uint32_t, std::vector<uint32_t>> temp_map=m_nodesConnections;
-      std::vector<int> delete_nodes=CreateRandomNums(0,m_totalNoNodes,num_of_delete_nodes);
+      //printf("delete_nodes:");
+      delete_nodes=CreateRandomNums(0,m_totalNoNodes,num_of_delete_nodes);
+      
+      //printf("\n");
       for (int i=0;i<num_of_delete_nodes;++i)
       {
         temp_map[delete_nodes[i]].clear();
@@ -983,9 +997,16 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
             else ++k;
         }
       }
-      if (is_connected(temp_map,m_totalNoNodes-num_of_delete_nodes)) my_num++;
+      /*printf("now_graph\n");
+      for (int i=0;i<m_totalNoNodes;i++)
+      {
+        for(int k=0;k<temp_map[i].size();++k)
+          printf("%d ",temp_map[i][k]);
+        printf("\n");
+      }*/
+      if (is_connected(temp_map,m_totalNoNodes,delete_nodes)) my_num++;
     }
-    printf("num_of_delete_nodes:%d, connectivity probability:%d%%\n",num_of_delete_nodes,my_num*10);
+    printf("num_of_delete_nodes:%d, connectivity probability:%d%%\n",num_of_delete_nodes,my_num*25);
   }
 
 /*   //Print the nodes' connections
@@ -1004,249 +1025,249 @@ BitcoinTopologyHelper::BitcoinTopologyHelper (uint32_t noCpus, uint32_t totalNoN
   } */
 
   //Print the nodes' connections distribution
-  if (m_systemId == 0)
-  {
-    int *intervals =  new int[connectionsDistributionIntervals.size() + 1];
-	int *stats = new int[connectionsDistributionIntervals.size()];
-	double averageNoConnectionsPerNode = 0;
-	double averageNoConnectionsPerMiner = 0;
+//   if (m_systemId == 0)
+//   {
+//     int *intervals =  new int[connectionsDistributionIntervals.size() + 1];
+// 	int *stats = new int[connectionsDistributionIntervals.size()];
+// 	double averageNoConnectionsPerNode = 0;
+// 	double averageNoConnectionsPerMiner = 0;
 
-	for(int i = 0; i < connectionsDistributionIntervals.size(); i++)
-      intervals[i] = connectionsDistributionIntervals[i] + i;
-    intervals[connectionsDistributionIntervals.size()] = m_maxConnectionsPerMiner;
+// 	for(int i = 0; i < connectionsDistributionIntervals.size(); i++)
+//       intervals[i] = connectionsDistributionIntervals[i] + i;
+//     intervals[connectionsDistributionIntervals.size()] = m_maxConnectionsPerMiner;
 	
-	for(int i = 0; i < connectionsDistributionIntervals.size(); i++)
-      stats[i] = 0;
+// 	for(int i = 0; i < connectionsDistributionIntervals.size(); i++)
+//       stats[i] = 0;
   
-    std::cout << "\nThe nodes connections stats are:\n";
-    for(auto &node : m_nodesConnections)
-    {
-  	  //std::cout << "\nNode " << node.first << ": " << m_minConnections[node.first] << ", " << m_maxConnections[node.first] << ", " << node.second.size();
-      bool placed = false;
+//     std::cout << "\nThe nodes connections stats are:\n";
+//     for(auto &node : m_nodesConnections)
+//     {
+//   	  std::cout << "\nNode " << node.first << ": " << m_minConnections[node.first] << ", " << m_maxConnections[node.first] << ", " << node.second.size();
+//       bool placed = false;
 	  
-      if ( std::find(m_miners.begin(), m_miners.end(), node.first) == m_miners.end() )
-        averageNoConnectionsPerNode += node.second.size();
-      else
-        averageNoConnectionsPerMiner += node.second.size();
+//       if ( std::find(m_miners.begin(), m_miners.end(), node.first) == m_miners.end() )
+//         averageNoConnectionsPerNode += node.second.size();
+//       else
+//         averageNoConnectionsPerMiner += node.second.size();
 	  
-	  for (int i = 1; i < connectionsDistributionIntervals.size(); i++)
-      {
-        if (node.second.size() <= intervals[i])
-        {
-          stats[i-1]++;
-          placed = true;
-          break;
-		}
-      }
-	  if (!placed)
-      { 
-        //std::cout << "Node " << node.first << " has " << node.second.size() << " connections\n";
-        stats[connectionsDistributionIntervals.size() - 1]++;
-      }
-    }
+// 	  for (int i = 1; i < connectionsDistributionIntervals.size(); i++)
+//       {
+//         if (node.second.size() <= intervals[i])
+//         {
+//           stats[i-1]++;
+//           placed = true;
+//           break;
+// 		}
+//       }
+// 	  if (!placed)
+//       { 
+//         std::cout << "Node " << node.first << " has " << node.second.size() << " connections\n";
+//         stats[connectionsDistributionIntervals.size() - 1]++;
+//       }
+//     }
 	
-    std::cout << "Average Number of Connections Per Node = " << averageNoConnectionsPerNode / (m_totalNoNodes - m_noMiners) 
-	          << "\nAverage Number of Connections Per Miner = " << averageNoConnectionsPerMiner / (m_noMiners) << "\nConnections distribution: \n";
+//     std::cout << "Average Number of Connections Per Node = " << averageNoConnectionsPerNode / (m_totalNoNodes - m_noMiners) 
+// 	          << "\nAverage Number of Connections Per Miner = " << averageNoConnectionsPerMiner / (m_noMiners) << "\nConnections distribution: \n";
 			  
-    for (uint32_t i = 0; i < connectionsDistributionIntervals.size(); i++)
-    {
-      std::cout << intervals[i] << "-" << intervals[i+1] << ": " << stats[i] << "(" << stats[i] * 100.0 / m_totalNoNodes << "%)\n";
-    }
+//     for (uint32_t i = 0; i < connectionsDistributionIntervals.size(); i++)
+//     {
+//       std::cout << intervals[i] << "-" << intervals[i+1] << ": " << stats[i] << "(" << stats[i] * 100.0 / m_totalNoNodes << "%)\n";
+//     }
 	
-    delete[] intervals;
-	delete[] stats;
-  }
+//     delete[] intervals;
+// 	delete[] stats;
+//   }
  
-  tFinish = GetWallTime();
-  if (m_systemId == 0)
-  {
-    std::cout << "The nodes connections were created in " << tFinish - tStart << "s.\n";
-    std::cout << "The minimum number of connections for each node is " << m_minConnectionsPerNode 
-              << " and whereas the maximum is " << m_maxConnectionsPerNode << ".\n";
-  }
+//   tFinish = GetWallTime();
+//   if (m_systemId == 0)
+//   {
+//     std::cout << "The nodes connections were created in " << tFinish - tStart << "s.\n";
+//     std::cout << "The minimum number of connections for each node is " << m_minConnectionsPerNode 
+//               << " and whereas the maximum is " << m_maxConnectionsPerNode << ".\n";
+//   }
   
   
-  InternetStackHelper stack;
+//   InternetStackHelper stack;
   
-  std::ostringstream latencyStringStream; 
-  std::ostringstream bandwidthStream;
+//   std::ostringstream latencyStringStream; 
+//   std::ostringstream bandwidthStream;
   
-  PointToPointHelper pointToPoint;
+//   PointToPointHelper pointToPoint;
   
-  tStart = GetWallTime();
-  //Create the bitcoin nodes
-  for (uint32_t i = 0; i < m_totalNoNodes; i++)
-  {
-    NodeContainer currentNode;
-    currentNode.Create (1, i % m_noCpus);
-/* 	if (m_systemId == 0)
-      std::cout << "Creating a node with Id = " << i << " and systemId = " << i % m_noCpus << "\n"; */
-    m_nodes.push_back (currentNode);
-	AssignRegion(i);
-    AssignInternetSpeeds(i);
-  }
+//   tStart = GetWallTime();
+//   Create the bitcoin nodes
+//   for (uint32_t i = 0; i < m_totalNoNodes; i++)
+//   {
+//     NodeContainer currentNode;
+//     currentNode.Create (1, i % m_noCpus);
+// /* 	if (m_systemId == 0)
+//       std::cout << "Creating a node with Id = " << i << " and systemId = " << i % m_noCpus << "\n"; */
+//     m_nodes.push_back (currentNode);
+// 	AssignRegion(i);
+//     AssignInternetSpeeds(i);
+//   }
 
   
-  //Print region bandwidths averages
-  if (m_systemId == 0)
-  {
-    std::map<uint32_t, std::vector<double>> downloadRegionBandwidths;
-    std::map<uint32_t, std::vector<double>> uploadRegionBandwidths;
+//   Print region bandwidths averages
+//   if (m_systemId == 0)
+//   {
+//     std::map<uint32_t, std::vector<double>> downloadRegionBandwidths;
+//     std::map<uint32_t, std::vector<double>> uploadRegionBandwidths;
 
-    for(int i = 0; i < m_totalNoNodes; i++)
-    {
-      if ( std::find(m_miners.begin(), m_miners.end(), i) == m_miners.end())
-      {
-        downloadRegionBandwidths[m_bitcoinNodesRegion[i]].push_back(m_nodesInternetSpeeds[i].downloadSpeed);
-        uploadRegionBandwidths[m_bitcoinNodesRegion[i]].push_back(m_nodesInternetSpeeds[i].uploadSpeed);
-      }
-    }
+//     for(int i = 0; i < m_totalNoNodes; i++)
+//     {
+//       if ( std::find(m_miners.begin(), m_miners.end(), i) == m_miners.end())
+//       {
+//         downloadRegionBandwidths[m_bitcoinNodesRegion[i]].push_back(m_nodesInternetSpeeds[i].downloadSpeed);
+//         uploadRegionBandwidths[m_bitcoinNodesRegion[i]].push_back(m_nodesInternetSpeeds[i].uploadSpeed);
+//       }
+//     }
 
-    for (auto region : downloadRegionBandwidths)
-    {
-       double average = 0;
-       for (auto &speed : region.second)
-       {
-         average += speed;
-	   }
+//     for (auto region : downloadRegionBandwidths)
+//     {
+//        double average = 0;
+//        for (auto &speed : region.second)
+//        {
+//          average += speed;
+// 	   }
        
-      std::cout << "The download speed for region " << getBitcoinRegion(getBitcoinEnum(region.first)) << " = " << average / region.second.size() << " Mbps\n";
-    }
+//       std::cout << "The download speed for region " << getBitcoinRegion(getBitcoinEnum(region.first)) << " = " << average / region.second.size() << " Mbps\n";
+//     }
 	
-    for (auto region : uploadRegionBandwidths)
-    {
-       double average = 0;
-       for (auto &speed : region.second)
-       {
-         average += speed;
-	   }
+//     for (auto region : uploadRegionBandwidths)
+//     {
+//        double average = 0;
+//        for (auto &speed : region.second)
+//        {
+//          average += speed;
+// 	   }
        
-      std::cout << "The upload speed for region " << getBitcoinRegion(getBitcoinEnum(region.first)) << " = " << average / region.second.size() << " Mbps\n";
-    }
-  }
+//       std::cout << "The upload speed for region " << getBitcoinRegion(getBitcoinEnum(region.first)) << " = " << average / region.second.size() << " Mbps\n";
+//     }
+//   }
   
-  tFinish = GetWallTime();
-  if (m_systemId == 0)
-    std::cout << "The nodes were created in " << tFinish - tStart << "s.\n";
+//   tFinish = GetWallTime();
+//   if (m_systemId == 0)
+//     std::cout << "The nodes were created in " << tFinish - tStart << "s.\n";
 
-  tStart = GetWallTime();
+//   tStart = GetWallTime();
   
-  //Create first the links between miners
-  for(auto miner = m_miners.begin(); miner != m_miners.end(); miner++)  
-  {
+//   Create first the links between miners
+//   for(auto miner = m_miners.begin(); miner != m_miners.end(); miner++)  
+//   {
 
-    for(std::vector<uint32_t>::const_iterator it = m_nodesConnections[*miner].begin(); it != m_nodesConnections[*miner].begin() + m_miners.size() - 1; it++)
-    {
-      if ( *it > *miner)	//Do not recreate links
-      {
-        NetDeviceContainer newDevices;
+//     for(std::vector<uint32_t>::const_iterator it = m_nodesConnections[*miner].begin(); it != m_nodesConnections[*miner].begin() + m_miners.size() - 1; it++)
+//     {
+//       if ( *it > *miner)	//Do not recreate links
+//       {
+//         NetDeviceContainer newDevices;
 		
-        m_totalNoLinks++;
+//         m_totalNoLinks++;
 		
-		double bandwidth = std::min(std::min(m_nodesInternetSpeeds[m_nodes.at (*miner).Get (0)->GetId()].uploadSpeed, 
-                                    m_nodesInternetSpeeds[m_nodes.at (*miner).Get (0)->GetId()].downloadSpeed),
-                                    std::min(m_nodesInternetSpeeds[m_nodes.at (*it).Get (0)->GetId()].uploadSpeed, 
-                                    m_nodesInternetSpeeds[m_nodes.at (*it).Get (0)->GetId()].downloadSpeed));					
-		bandwidthStream.str("");
-        bandwidthStream.clear();
-		bandwidthStream << bandwidth << "Mbps";
+// 		double bandwidth = std::min(std::min(m_nodesInternetSpeeds[m_nodes.at (*miner).Get (0)->GetId()].uploadSpeed, 
+//                                     m_nodesInternetSpeeds[m_nodes.at (*miner).Get (0)->GetId()].downloadSpeed),
+//                                     std::min(m_nodesInternetSpeeds[m_nodes.at (*it).Get (0)->GetId()].uploadSpeed, 
+//                                     m_nodesInternetSpeeds[m_nodes.at (*it).Get (0)->GetId()].downloadSpeed));					
+// 		bandwidthStream.str("");
+//         bandwidthStream.clear();
+// 		bandwidthStream << bandwidth << "Mbps";
 		
-        latencyStringStream.str("");
-        latencyStringStream.clear();
+//         latencyStringStream.str("");
+//         latencyStringStream.clear();
 		
-		if (m_latencyParetoShapeDivider > 0)
-        {
-          Ptr<ParetoRandomVariable> paretoDistribution = CreateObject<ParetoRandomVariable> ();
-          paretoDistribution->SetAttribute ("Mean", DoubleValue (m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (*miner).Get (0))->GetId()]]
-                                                                                  [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]]));
-          paretoDistribution->SetAttribute ("Shape", DoubleValue (m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (*miner).Get (0))->GetId()]]
-                                                                                   [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] / m_latencyParetoShapeDivider));
-          latencyStringStream << paretoDistribution->GetValue() << "ms";
-        }
-        else
-        {
-          latencyStringStream << m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (*miner).Get (0))->GetId()]]
-                                                  [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] << "ms";
-        }
+// 		if (m_latencyParetoShapeDivider > 0)
+//         {
+//           Ptr<ParetoRandomVariable> paretoDistribution = CreateObject<ParetoRandomVariable> ();
+//           paretoDistribution->SetAttribute ("Mean", DoubleValue (m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (*miner).Get (0))->GetId()]]
+//                                                                                   [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]]));
+//           paretoDistribution->SetAttribute ("Shape", DoubleValue (m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (*miner).Get (0))->GetId()]]
+//                                                                                    [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] / m_latencyParetoShapeDivider));
+//           latencyStringStream << paretoDistribution->GetValue() << "ms";
+//         }
+//         else
+//         {
+//           latencyStringStream << m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (*miner).Get (0))->GetId()]]
+//                                                   [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] << "ms";
+//         }
 
         
-		pointToPoint.SetDeviceAttribute ("DataRate", StringValue (bandwidthStream.str()));
-		pointToPoint.SetChannelAttribute ("Delay", StringValue (latencyStringStream.str()));
+// 		pointToPoint.SetDeviceAttribute ("DataRate", StringValue (bandwidthStream.str()));
+// 		pointToPoint.SetChannelAttribute ("Delay", StringValue (latencyStringStream.str()));
 		
-        newDevices.Add (pointToPoint.Install (m_nodes.at (*miner).Get (0), m_nodes.at (*it).Get (0)));
-		m_devices.push_back (newDevices);
-/* 		if (m_systemId == 0)
-          std::cout << "Creating link " << m_totalNoLinks << " between nodes " 
-                    << (m_nodes.at (*miner).Get (0))->GetId() << " (" 
-                    <<  getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[(m_nodes.at (*miner).Get (0))->GetId()]))
-                    << ") and node " << (m_nodes.at (*it).Get (0))->GetId() << " (" 
-                    <<  getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]))
-                    << ") with latency = " << latencyStringStream.str() 
-                    << " and bandwidth = " << bandwidthStream.str() << ".\n"; */
-      }
-    }
-  }
+//         newDevices.Add (pointToPoint.Install (m_nodes.at (*miner).Get (0), m_nodes.at (*it).Get (0)));
+// 		m_devices.push_back (newDevices);
+// /* 		if (m_systemId == 0)
+//           std::cout << "Creating link " << m_totalNoLinks << " between nodes " 
+//                     << (m_nodes.at (*miner).Get (0))->GetId() << " (" 
+//                     <<  getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[(m_nodes.at (*miner).Get (0))->GetId()]))
+//                     << ") and node " << (m_nodes.at (*it).Get (0))->GetId() << " (" 
+//                     <<  getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]))
+//                     << ") with latency = " << latencyStringStream.str() 
+//                     << " and bandwidth = " << bandwidthStream.str() << ".\n"; */
+//       }
+//     }
+//   }
   
-  for(auto &node : m_nodesConnections)  
-  {
+//   for(auto &node : m_nodesConnections)  
+//   {
 
-    for(std::vector<uint32_t>::const_iterator it = node.second.begin(); it != node.second.end(); it++)
-    {
+//     for(std::vector<uint32_t>::const_iterator it = node.second.begin(); it != node.second.end(); it++)
+//     {
       
-      if ( *it > node.first && (std::find(m_miners.begin(), m_miners.end(), *it) == m_miners.end() || 
-	       std::find(m_miners.begin(), m_miners.end(), node.first) == m_miners.end()))	//Do not recreate links
-      {
-        NetDeviceContainer newDevices;
+//       if ( *it > node.first && (std::find(m_miners.begin(), m_miners.end(), *it) == m_miners.end() || 
+// 	       std::find(m_miners.begin(), m_miners.end(), node.first) == m_miners.end()))	//Do not recreate links
+//       {
+//         NetDeviceContainer newDevices;
 		
-        m_totalNoLinks++;
+//         m_totalNoLinks++;
 		
-		double bandwidth = std::min(std::min(m_nodesInternetSpeeds[m_nodes.at (node.first).Get (0)->GetId()].uploadSpeed, 
-                                    m_nodesInternetSpeeds[m_nodes.at (node.first).Get (0)->GetId()].downloadSpeed),
-                                    std::min(m_nodesInternetSpeeds[m_nodes.at (*it).Get (0)->GetId()].uploadSpeed, 
-                                    m_nodesInternetSpeeds[m_nodes.at (*it).Get (0)->GetId()].downloadSpeed));					
-		bandwidthStream.str("");
-        bandwidthStream.clear();
-		bandwidthStream << bandwidth << "Mbps";
+// 		double bandwidth = std::min(std::min(m_nodesInternetSpeeds[m_nodes.at (node.first).Get (0)->GetId()].uploadSpeed, 
+//                                     m_nodesInternetSpeeds[m_nodes.at (node.first).Get (0)->GetId()].downloadSpeed),
+//                                     std::min(m_nodesInternetSpeeds[m_nodes.at (*it).Get (0)->GetId()].uploadSpeed, 
+//                                     m_nodesInternetSpeeds[m_nodes.at (*it).Get (0)->GetId()].downloadSpeed));					
+// 		bandwidthStream.str("");
+//         bandwidthStream.clear();
+// 		bandwidthStream << bandwidth << "Mbps";
 		
-        latencyStringStream.str("");
-        latencyStringStream.clear();
+//         latencyStringStream.str("");
+//         latencyStringStream.clear();
 		
-		if (m_latencyParetoShapeDivider > 0)
-        {
-          Ptr<ParetoRandomVariable> paretoDistribution = CreateObject<ParetoRandomVariable> ();
-          paretoDistribution->SetAttribute ("Mean", DoubleValue (m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (node.first).Get (0))->GetId()]]
-                                                                                  [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]]));
-          paretoDistribution->SetAttribute ("Shape", DoubleValue (m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (node.first).Get (0))->GetId()]]
-                                                                                   [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] / m_latencyParetoShapeDivider));
-          latencyStringStream << paretoDistribution->GetValue() << "ms";
-        }
-        else
-        {
-        latencyStringStream << m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (node.first).Get (0))->GetId()]]
-                                                [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] << "ms";
-        }
+// 		if (m_latencyParetoShapeDivider > 0)
+//         {
+//           Ptr<ParetoRandomVariable> paretoDistribution = CreateObject<ParetoRandomVariable> ();
+//           paretoDistribution->SetAttribute ("Mean", DoubleValue (m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (node.first).Get (0))->GetId()]]
+//                                                                                   [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]]));
+//           paretoDistribution->SetAttribute ("Shape", DoubleValue (m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (node.first).Get (0))->GetId()]]
+//                                                                                    [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] / m_latencyParetoShapeDivider));
+//           latencyStringStream << paretoDistribution->GetValue() << "ms";
+//         }
+//         else
+//         {
+//         latencyStringStream << m_regionLatencies[m_bitcoinNodesRegion[(m_nodes.at (node.first).Get (0))->GetId()]]
+//                                                 [m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]] << "ms";
+//         }
 		
-		pointToPoint.SetDeviceAttribute ("DataRate", StringValue (bandwidthStream.str()));
-		pointToPoint.SetChannelAttribute ("Delay", StringValue (latencyStringStream.str()));
+// 		pointToPoint.SetDeviceAttribute ("DataRate", StringValue (bandwidthStream.str()));
+// 		pointToPoint.SetChannelAttribute ("Delay", StringValue (latencyStringStream.str()));
 		
-        newDevices.Add (pointToPoint.Install (m_nodes.at (node.first).Get (0), m_nodes.at (*it).Get (0)));
-		m_devices.push_back (newDevices);
-/* 		if (m_systemId == 0)
-          std::cout << "Creating link " << m_totalNoLinks << " between nodes " 
-                    << (m_nodes.at (node.first).Get (0))->GetId() << " (" 
-                    <<  getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[(m_nodes.at (node.first).Get (0))->GetId()]))
-                    << ") and node " << (m_nodes.at (*it).Get (0))->GetId() << " (" 
-                    <<  getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]))
-                    << ") with latency = " << latencyStringStream.str() 
-                    << " and bandwidth = " << bandwidthStream.str() << ".\n"; */
-      }
-    }
-  }
+//         newDevices.Add (pointToPoint.Install (m_nodes.at (node.first).Get (0), m_nodes.at (*it).Get (0)));
+// 		m_devices.push_back (newDevices);
+// /* 		if (m_systemId == 0)
+//           std::cout << "Creating link " << m_totalNoLinks << " between nodes " 
+//                     << (m_nodes.at (node.first).Get (0))->GetId() << " (" 
+//                     <<  getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[(m_nodes.at (node.first).Get (0))->GetId()]))
+//                     << ") and node " << (m_nodes.at (*it).Get (0))->GetId() << " (" 
+//                     <<  getBitcoinRegion(getBitcoinEnum(m_bitcoinNodesRegion[(m_nodes.at (*it).Get (0))->GetId()]))
+//                     << ") with latency = " << latencyStringStream.str() 
+//                     << " and bandwidth = " << bandwidthStream.str() << ".\n"; */
+//       }
+//     }
+//   }
   
-  tFinish = GetWallTime();
+//   tFinish = GetWallTime();
 
-  if (m_systemId == 0)
-    std::cout << "The total number of links is " << m_totalNoLinks << " (" << tFinish - tStart << "s).\n";
+//   if (m_systemId == 0)
+//     std::cout << "The total number of links is " << m_totalNoLinks << " (" << tFinish - tStart << "s).\n";
 }
 
 BitcoinTopologyHelper::~BitcoinTopologyHelper ()
@@ -1502,19 +1523,28 @@ void DFS(std::map<uint32_t, std::vector<uint32_t>> &G,int v)
   }
   return;
 }
-bool is_connected(std::map<uint32_t, std::vector<uint32_t>> G,int num_of_nodes)
+bool is_connected(std::map<uint32_t, std::vector<uint32_t>> &G,int num_of_nodes,std::vector<int> &delete_nodes)
 {
   visited.clear();
   for (int i=0;i<num_of_nodes;++i)
   {
     visited.push_back(false);
   }
-  DFS(G,0);
+  for (int i=0;i<num_of_nodes;++i)
+    if (std::find(delete_nodes.begin(),delete_nodes.end(),i)==delete_nodes.end())
+    {
+      DFS(G,i);
+      break;
+    }
   bool my_flag=true;
   for (int i=0;i<visited.size();++i)
   {
-    if (visited[i]==false)
+    if ((visited[i]==false) && (std::find(delete_nodes.begin(),delete_nodes.end(),i)==delete_nodes.end()))
     {
+      //printf("not_get:%d\n",i);
+      /*for (int j=0;j<delete_nodes.size();++j)
+        printf("%d ",delete_nodes[j]);
+      printf("\n%d\n",*)*/
       my_flag=false;
       break;
     }
@@ -1529,7 +1559,6 @@ std::vector<int> CreateRandomNums(int min,int max, int num)
 	{
 		return res;
 	}
-	srand(time(0));
 	for (auto i{0}; i < num; i++)
 	{
 		while (true)
@@ -1539,6 +1568,7 @@ std::vector<int> CreateRandomNums(int min,int max, int num)
 			if (res.end() == iter)
 			{
 				res.push_back(temp);
+        //printf("%d ",temp);
 				break;
 			}		
 		}
