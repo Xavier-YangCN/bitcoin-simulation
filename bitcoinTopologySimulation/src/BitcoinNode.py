@@ -133,9 +133,11 @@ class BitcoinNode(BitcoinConstant):
                 self.outbound_is_full_bool = True
         return self.outbound_is_full_bool
 
-    def update_outbound_connections(self, t):
-        address = self._get_address_to_connect()
-
+    def update_outbound_connections(self, t,dns=-1):
+        if dns==-1:
+            address = self._get_address_to_connect()
+        else:
+            address=dns
         # look from a global perspective on the code and find out which degree out of two possibilities one should get
         if (self.connection_strategy is 'p2c_max') or (self.connection_strategy is 'p2c_min'):
             address2 = self._get_address_to_connect()
@@ -268,9 +270,9 @@ class BitcoinNode(BitcoinConstant):
         self.output_envelope = [answer_envelope]
         return answer_envelope
 
-    def ask_neighbour_to_get_addresses(self, t):
+    def ask_neighbour_to_get_addresses(self, t,dns=0):
         if len(self.outbound) == 0:
-            neighbour_address = random.choice(self._hard_coded_dns)
+            neighbour_address = dns
         else:
             neighbour_address = random.choice(list(self.outbound))
         envelope = self._get_empty_envelope(t, neighbour_address)

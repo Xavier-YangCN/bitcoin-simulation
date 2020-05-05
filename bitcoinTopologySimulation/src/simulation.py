@@ -51,13 +51,15 @@ class Simulation:
     # public functions
     ############################
 
-    def run(self, t_start=1, t_end=60, n_iterations=124, plot_first_x_graphs=10,
+    def run(self, t_start=1, t_end=60, n_iterations=124, plot_first_x_graphs=100,
             avg_paths_after_n_iterations=[10, 25, 50, 75, 100, 125, 150, 175, 200],
-            MAX_OUTBOUND_CONNECTIONS=8, numb_nodes=600,get_connectivity_result=10000):
+            MAX_OUTBOUND_CONNECTIONS=8, numb_nodes=600,get_connectivity_result=1000):
         self.MAX_OUTBOUND_CONNECTIONS = MAX_OUTBOUND_CONNECTIONS
         max_growth_rate = 0.05
-        max_reconnect_rate = 0.04
-        max_die_rate = 0.01
+        #max_reconnect_rate = 0.04
+        max_reconnect_rate = 0
+        #max_die_rate = 0.01
+        max_die_rate = 0
         finish_simulation_counter_max = 2000
         finish_simulation_counter = 0
 
@@ -71,22 +73,22 @@ class Simulation:
                 self._process_envelopes(node_id)
 
             # some new nodes join the network or get offline
-            if finish_simulation_counter == 0:
-                number_of_dying_nodes = random.randint(0, ceil(max_die_rate * len(self.DG.nodes)))
-                for node_id in random.choices(list(self.DG.nodes), k=number_of_dying_nodes):
-                    if node_id in self.FIXED_DNS:
-                        continue
-                    if node_id not in list(self.DG.nodes):
-                        continue
-                    self._delete_node(node_id, save_offline_node=self.offline_nodes_reconnect)
-                number_of_new_nodes = max(5, random.randint(0, ceil(max_growth_rate * len(self.DG.nodes))))
-                for _ in range(number_of_new_nodes):
-                    self._new_node_connects_to_network()
+            
+            # number_of_dying_nodes = random.randint(0, ceil(max_die_rate * len(self.DG.nodes)))
+            # for node_id in random.choices(list(self.DG.nodes), k=number_of_dying_nodes):
+            #     if node_id in self.FIXED_DNS:
+            #         continue
+            #     if node_id not in list(self.DG.nodes):
+            #         continue
+            #     self._delete_node(node_id, save_offline_node=self.offline_nodes_reconnect)
+            number_of_new_nodes = max(5, random.randint(0, ceil(max_growth_rate * len(self.DG.nodes))))
+            for _ in range(number_of_new_nodes):
+                self._new_node_connects_to_network()
 
-                if self.offline_nodes_reconnect is True:
-                    reconnection_number = random.randint(0, int(max_reconnect_rate * len(self.offline_nodes)))
-                    for _ in range(reconnection_number):
-                        self._offline_node_gets_online(pop_random_element_from_list(self.offline_nodes))
+            if self.offline_nodes_reconnect is True:
+                reconnection_number = random.randint(0, int(max_reconnect_rate * len(self.offline_nodes)))
+                for _ in range(reconnection_number):
+                    self._offline_node_gets_online(pop_random_element_from_list(self.offline_nodes))
             # else:
             #     finish_simulation_counter += 1
             #     if finish_simulation_counter > finish_simulation_counter_max:
@@ -100,10 +102,11 @@ class Simulation:
             #         return self.whiteboard.avg_path_length_plot(self.MAX_OUTBOUND_CONNECTIONS)
 
             # plot state of the net
-            #if (ii < plot_first_x_graphs) and (finish_simulation_counter == 0):
-            #    self.whiteboard.plot_net()
+            # if (ii < plot_first_x_graphs):
+            #     self.whiteboard.plot_net()
             if (len(self.DG.nodes())>=get_connectivity_result):
                 self.get_connectivity_result()
+                #print(nx.is_connected(self.DG))
                 return
 
 
@@ -220,7 +223,7 @@ class Simulation:
                                                                                         self.simulation_time,
                                                                                         self.FIXED_DNS)
         self._get_addresses_from_neighbour(self.DG_last_id)
-        self._node_updates_outbound_connection(self.DG_last_id)
+        self._node_updates_outbound_connection_first(self.DG_last_id)
         if show_network is True:
             self.whiteboard.plot_net()
 
@@ -276,16 +279,25 @@ class Simulation:
     def _get_addresses_from_neighbour(self, node_id, envelope=None, show_protocol=False):
         envelope_1 = envelope
         if envelope is None:
-            envelope_1 = self.DG.node[node_id][self.simulation_protocol].ask_neighbour_to_get_addresses(
-                self.simulation_time)
+            for dns in self.FIXED_DNS:
+                envelope_1 = self.DG.node[node_id][self.simulation_protocol].ask_neighbour_to_get_addresses(
+                    self.simulation_time,dns)
 
-        if envelope_1['receiver'] not in self.DG.nodes:
-            return False
+                if envelope_1['receiver'] not in self.DG.nodes:
+                    return False
 
-        envelope_2 = self.DG.node[envelope_1['receiver']][self.simulation_protocol].receive_message(
-            self.simulation_time, envelope_1)
-        envelope_3 = self.DG.node[envelope_2['receiver']][self.simulation_protocol].receive_message(
-            self.simulation_time, envelope_2)
+                envelope_2 = self.DG.node[envelope_1['receiver']][self.simulation_protocol].receive_message(
+                    self.simulation_time, envelope_1)
+                envelope_3 = self.DG.node[envelope_2['receiver']][self.simulation_protocol].receive_message(
+                    self.simulation_time, envelope_2)
+        else:
+            if envelope_1['receiver'] not in self.DG.nodes:
+                return False
+
+            envelope_2 = self.DG.node[envelope_1['receiver']][self.simulation_protocol].receive_message(
+                self.simulation_time, envelope_1)
+            envelope_3 = self.DG.node[envelope_2['receiver']][self.simulation_protocol].receive_message(
+                self.simulation_time, envelope_2)
 
         if show_protocol is True:
             pprint.pprint(envelope_1)
@@ -297,6 +309,7 @@ class Simulation:
 
         if envelope is not None:
             envelope_1 = envelope
+            
         else:
             envelope_1 = self.DG.node[node_id][self.simulation_protocol].update_outbound_connections(
                 self.simulation_time)
@@ -309,6 +322,27 @@ class Simulation:
         elif self.simulation_protocol == 'power_2_choices':
             success: bool = self._node_power_2_choices(envelope_1, node_id, show_protocol, show_connection_failures)
         return success
+
+    def _node_updates_outbound_connection_first(self, node_id, envelope=None, show_protocol=False, show_connection_failures=False):
+    
+        if len(self.DG.node[node_id][self.simulation_protocol].addrMan)<self.MAX_OUTBOUND_CONNECTIONS:
+            try_list=self.DG.node[node_id][self.simulation_protocol].addrMan.keys()
+        else:
+            try_list=random.sample(self.DG.node[node_id][self.simulation_protocol].addrMan.keys(),self.MAX_OUTBOUND_CONNECTIONS)
+        for dns in try_list:
+            envelope_1 = self.DG.node[node_id][self.simulation_protocol].update_outbound_connections(
+                self.simulation_time,dns)
+        # there is no need to update the connections
+            if envelope_1 is None:
+                return False
+
+            if self.simulation_protocol == 'bitcoin_protocol':
+                success: bool = self._node_bitcoin(envelope_1, node_id, show_protocol, show_connection_failures)
+            elif self.simulation_protocol == 'power_2_choices':
+                success: bool = self._node_power_2_choices(envelope_1, node_id, show_protocol, show_connection_failures)
+        
+        return success
+
 
     def _node_power_2_choices(self, envelopes_1, node_id, show_protocol, show_connection_failures):
         assert len(envelopes_1) == 2, 'a node has to ask 2 other nodes in order to get to chose between two degrees'
@@ -392,14 +426,15 @@ class Simulation:
     def get_connectivity_result(self):
         graph=self.DG
         numb=len(graph.nodes())
-        number_of_iter=1
+        number_of_iter=4
         conn_prob=[]
-        current_range=range(1,numb,1000)
+        #current_range=range(1,numb,numb//10)
+        current_range=range(0,5000,200)
 
         for x in current_range:
             num = 0
             com_n = 0
-            for j in range(10):
+            for j in range(number_of_iter):
                 rg=copy.deepcopy(graph)
                 #print(len(rg.nodes()))
                 del_nodes = random.sample(list(rg.nodes()),x)

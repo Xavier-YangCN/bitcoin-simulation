@@ -37,18 +37,20 @@ def big_simulation_bitcoin():
     # connection_strategy = ['stand_bc', 'p2c_min', 'p2c_max', 'geo_bc', 'no_geo_bc]
     max_outbound_connections = [8]
     for outbound_distribution in outbound_distributions:
+        print(outbound_distribution)
         for min_init, max_init in zip(x, initial_max):
             for connection_strategy_element in connection_strategy:
                 for outbound_number in max_outbound_connections:
-                    s = simulation.Simulation(simulation_type='bitcoin_protocol', with_evil_nodes=False,
-                                              connection_strategy=connection_strategy_element,
-                                              initial_connection_filter=initial_connection_filter,
-                                              outbound_distribution=outbound_distribution,
-                                              data={'initial_min': min_init, 'initial_max': max_init})
-                    y.append(s.run(t_start=t_start, t_end=t_end, n_iterations=n_iterations, plot_first_x_graphs=plot_first_x_graphs,
-                                   #avg_paths_after_n_iterations=avg_paths_after_n_iterations,
-                                   avg_paths_after_n_iterations=[],
-                                   MAX_OUTBOUND_CONNECTIONS=outbound_number, numb_nodes=10000))
+                    for rwsw in range(10):
+                        s = simulation.Simulation(simulation_type='bitcoin_protocol', with_evil_nodes=False,
+                                                connection_strategy=connection_strategy_element,
+                                                initial_connection_filter=initial_connection_filter,
+                                                outbound_distribution=outbound_distribution,
+                                                data={'initial_min': min_init, 'initial_max': max_init})
+                        y.append(s.run(t_start=t_start, t_end=t_end, n_iterations=n_iterations, plot_first_x_graphs=plot_first_x_graphs,
+                                    #avg_paths_after_n_iterations=avg_paths_after_n_iterations,
+                                    avg_paths_after_n_iterations=[],
+                                    MAX_OUTBOUND_CONNECTIONS=outbound_number, numb_nodes=10000,get_connectivity_result=5000))
                     # if len(y) > 0:
                     #     plot_distribution(initial_min[: len(y)], y)
 
