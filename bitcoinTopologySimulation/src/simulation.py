@@ -17,12 +17,14 @@ class Simulation:
     simulation_time: float
     DG_last_id: int
 
+
     def __init__(self, simulation_type='bitcoin_protocol', MAX_OUTBOUND_CONNECTIONS=8, with_evil_nodes=False,
                  show_plots=True, connection_strategy: str = 'p2c_max', initial_connection_filter: bool = False,
                  outbound_distribution='const8_125', data={}):  # bitcoin_protocol power_2_choices
         self.MAX_OUTBOUND_CONNECTIONS = MAX_OUTBOUND_CONNECTIONS
         self.outbound_distribution = outbound_distribution
         self.evil_nodes_id = list()
+        self.temp_list=list()
         if with_evil_nodes:
             self.evil_nodes_percentage = .0025
         else:
@@ -53,13 +55,14 @@ class Simulation:
 
     def run(self, t_start=1, t_end=60, n_iterations=124, plot_first_x_graphs=100,
             avg_paths_after_n_iterations=[10, 25, 50, 75, 100, 125, 150, 175, 200],
-            MAX_OUTBOUND_CONNECTIONS=8, numb_nodes=600,get_connectivity_result=1000):
+            MAX_OUTBOUND_CONNECTIONS=8, numb_nodes=600,get_connectivity_result=3000):
         self.MAX_OUTBOUND_CONNECTIONS = MAX_OUTBOUND_CONNECTIONS
         max_growth_rate = 0.05
         #max_reconnect_rate = 0.04
         max_reconnect_rate = 0
         #max_die_rate = 0.01
         max_die_rate = 0
+        Pa=1
         finish_simulation_counter_max = 2000
         finish_simulation_counter = 0
 
@@ -73,15 +76,22 @@ class Simulation:
                 self._process_envelopes(node_id)
 
             # some new nodes join the network or get offline
-            
+            temp=random.random()
+            if temp>=Pa:
+                number_of_dying_nodes=1
+                number_of_new_nodes=0
+            else:
+                number_of_dying_nodes=0
+                number_of_new_nodes=1
             # number_of_dying_nodes = random.randint(0, ceil(max_die_rate * len(self.DG.nodes)))
-            # for node_id in random.choices(list(self.DG.nodes), k=number_of_dying_nodes):
-            #     if node_id in self.FIXED_DNS:
-            #         continue
-            #     if node_id not in list(self.DG.nodes):
-            #         continue
-            #     self._delete_node(node_id, save_offline_node=self.offline_nodes_reconnect)
-            number_of_new_nodes = max(5, random.randint(0, ceil(max_growth_rate * len(self.DG.nodes))))
+            for node_id in random.choices(list(self.DG.nodes), k=number_of_dying_nodes):
+                if node_id in self.FIXED_DNS:
+                    continue
+                if node_id not in list(self.DG.nodes):
+                    continue
+                self._delete_node(node_id, save_offline_node=self.offline_nodes_reconnect)
+            # number_of_new_nodes = max(5, random.randint(0, ceil(max_growth_rate * len(self.DG.nodes))))
+            
             for _ in range(number_of_new_nodes):
                 self._new_node_connects_to_network()
 
@@ -104,12 +114,14 @@ class Simulation:
             # plot state of the net
             # if (ii < plot_first_x_graphs):
             #     self.whiteboard.plot_net()
+            # if (len(self.DG.nodes())>=get_connectivity_result):
+            #     self.get_connectivity_result()
+            #     #print(nx.is_connected(self.DG))
+            #     return
+
             if (len(self.DG.nodes())>=get_connectivity_result):
-                self.get_connectivity_result()
-                #print(nx.is_connected(self.DG))
+                self.get_degree_result()
                 return
-
-
 
             # if (ii in avg_paths_after_n_iterations) and (finish_simulation_counter == 0):
             #     # self.whiteboard.avg_path_length_log()
@@ -329,7 +341,9 @@ class Simulation:
             try_list=self.DG.node[node_id][self.simulation_protocol].addrMan.keys()
         else:
             try_list=random.sample(self.DG.node[node_id][self.simulation_protocol].addrMan.keys(),self.MAX_OUTBOUND_CONNECTIONS)
+        self.temp_list.append(len(try_list)) 
         for dns in try_list:
+            self.temp_list[dns]+=1
             envelope_1 = self.DG.node[node_id][self.simulation_protocol].update_outbound_connections(
                 self.simulation_time,dns)
         # there is no need to update the connections
@@ -414,6 +428,7 @@ class Simulation:
         for ii in self.FIXED_DNS:
             self.DG_last_id = ii
             self.DG.add_node(ii)
+            self.temp_list.append(len(self.FIXED_DNS)-1)
             if self.simulation_protocol == 'bitcoin_protocol':
                 self.DG.node[ii][self.simulation_protocol] = bn.BitcoinNode(ii, self.simulation_time, self.FIXED_DNS, self.DG, connection_strategy=self.connection_strategy)
             elif self.simulation_protocol == 'power_2_choices':
@@ -428,8 +443,8 @@ class Simulation:
         numb=len(graph.nodes())
         number_of_iter=4
         conn_prob=[]
-        #current_range=range(1,numb,numb//10)
-        current_range=range(0,5000,200)
+        current_range=range(0,numb,numb//20)
+        #current_range=range(0,5000,200)
 
         for x in current_range:
             num = 0
@@ -449,8 +464,14 @@ class Simulation:
         plt.plot(current_range,conn_prob)
         plt.show()
 
-
-
+    def get_degree_result(self):
+        x=range(1000)
+        y=list()
+        for i in range(1000):
+            
+            y.append(self.DG.degree(i))
+        plt.plot(x,self.temp_list)
+        plt.show()
         # x=10
         # del_nodes = random.sample(list(rg.nodes()),x)
         # for node in del_nodes:

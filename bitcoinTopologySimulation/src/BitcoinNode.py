@@ -49,10 +49,10 @@ class BitcoinConstant(object):
     ADDRMAN_SET_TRIED_COLLISION_SIZE = 10
 
     # the maximum connections that a bitcoin node is allowed to have online
-    # MAX_TOTAL_CONNECTIONS = 125
+    MAX_TOTAL_CONNECTIONS = 125
 
     # the maximum outgoing connections that a bitcoin node is allowed to have
-    # MAX_OUTBOUND_CONNECTIONS = 8
+    MAX_OUTBOUND_CONNECTIONS = 8
 
 
 class BitcoinNode(BitcoinConstant):

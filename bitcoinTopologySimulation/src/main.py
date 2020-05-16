@@ -17,7 +17,7 @@ def main(show_plots):
 def big_simulation_bitcoin():
     t_start = 1
     t_end = 2000
-    n_iterations = 4000
+    n_iterations = 10000
     plot_first_x_graphs = 100
     avg_paths_after_n_iterations = [25, 50, 75, 100, 125, 150, 175, 200, 225]
     initial_connection_filter = False
@@ -50,7 +50,7 @@ def big_simulation_bitcoin():
                         y.append(s.run(t_start=t_start, t_end=t_end, n_iterations=n_iterations, plot_first_x_graphs=plot_first_x_graphs,
                                     #avg_paths_after_n_iterations=avg_paths_after_n_iterations,
                                     avg_paths_after_n_iterations=[],
-                                    MAX_OUTBOUND_CONNECTIONS=outbound_number, numb_nodes=10000,get_connectivity_result=5000))
+                                    MAX_OUTBOUND_CONNECTIONS=outbound_number, numb_nodes=10000,get_connectivity_result=1000))
                     # if len(y) > 0:
                     #     plot_distribution(initial_min[: len(y)], y)
 
