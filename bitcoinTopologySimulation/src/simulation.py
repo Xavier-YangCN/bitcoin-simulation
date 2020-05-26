@@ -25,6 +25,8 @@ class Simulation:
         self.outbound_distribution = outbound_distribution
         self.evil_nodes_id = list()
         self.temp_list=list()
+        self.x=list()
+        self.y=list()
         if with_evil_nodes:
             self.evil_nodes_percentage = .0025
         else:
@@ -62,18 +64,20 @@ class Simulation:
         max_reconnect_rate = 0
         #max_die_rate = 0.01
         max_die_rate = 0
-        Pa=1
+        Pa=0.75
         finish_simulation_counter_max = 2000
         finish_simulation_counter = 0
 
         for ii, t in enumerate(list(np.linspace(t_start, t_end, n_iterations))):
+
             self.simulation_time = t
             print('simulation time: ' + str(round(self.simulation_time, 2))
                   + ', iteration: ' + str(ii)
                   + ' of ' + str(n_iterations)
                   + ', with ' + str(len(self.DG.nodes)) + ' nodes')
-            for node_id in self.DG.nodes:
-                self._process_envelopes(node_id)
+            #for node_id in self.DG.nodes:
+                #self._process_envelopes(node_id)
+                #self.try_outbound(node_id)
 
             # some new nodes join the network or get offline
             temp=random.random()
@@ -119,10 +123,14 @@ class Simulation:
             #     #print(nx.is_connected(self.DG))
             #     return
 
-            if (len(self.DG.nodes())>=get_connectivity_result):
+            if (self.DG_last_id==get_connectivity_result-1):
+                #self.get_connectivity_result()
                 self.get_degree_result()
-                return
+                return 0
 
+            # if (len(self.DG.nodes())>=get_connectivity_result):
+            #     self.get_degree_result()
+            #     return
             # if (ii in avg_paths_after_n_iterations) and (finish_simulation_counter == 0):
             #     # self.whiteboard.avg_path_length_log()
             #     self.whiteboard.plot_degree()
@@ -161,6 +169,15 @@ class Simulation:
                     self.simulation_protocol].outbound_is_full()
             if outbound_is_full:
                 return True
+    def try_outbound(self,node_id):
+        if len(self.DG.node[node_id]['bitcoin_protocol'].outbound)==self.MAX_OUTBOUND_CONNECTIONS:
+            return
+        self._node_updates_outbound_connection_second(node_id)
+        #print(len(self.DG.node[node_id]['bitcoin_protocol'].outbound))
+
+
+
+
 
     def _process_envelopes(self, node_id):
         envelopes = self.DG.node[node_id][self.simulation_protocol].interval_processes(
@@ -357,6 +374,33 @@ class Simulation:
         
         return success
 
+    def _node_updates_outbound_connection_second(self, node_id, envelope=None, show_protocol=False, show_connection_failures=False):
+        
+        # if len(self.DG.node[node_id][self.simulation_protocol].addrMan)<self.MAX_OUTBOUND_CONNECTIONS-len(self.DG.node[node_id][self.simulation_protocol].outbound):
+        #     try_list=self.DG.node[node_id][self.simulation_protocol].addrMan.keys()
+        # else:
+        #     try_list=random.sample(self.DG.node[node_id][self.simulation_protocol].addrMan.keys(),self.MAX_OUTBOUND_CONNECTIONS-len(self.DG.node[node_id][self.simulation_protocol].outbound))
+        # self.temp_list.append(len(try_list)) 
+        try_times=0
+
+        while (self.MAX_OUTBOUND_CONNECTIONS-len(self.DG.node[node_id][self.simulation_protocol].outbound)>0) :
+            try_times+=1
+            if (try_times>10):
+                break
+            dns = random.sample(self.DG.node[node_id][self.simulation_protocol].addrMan.keys(),1)[0]
+            self.temp_list[dns]+=1
+            envelope_1 = self.DG.node[node_id][self.simulation_protocol].update_outbound_connections(
+                self.simulation_time,dns)
+        # there is no need to update the connections
+            if envelope_1 is None:
+                continue
+
+            if self.simulation_protocol == 'bitcoin_protocol':
+                success: bool = self._node_bitcoin(envelope_1, node_id, show_protocol, show_connection_failures)
+            elif self.simulation_protocol == 'power_2_choices':
+                success: bool = self._node_power_2_choices(envelope_1, node_id, show_protocol, show_connection_failures)
+        
+        return success
 
     def _node_power_2_choices(self, envelopes_1, node_id, show_protocol, show_connection_failures):
         assert len(envelopes_1) == 2, 'a node has to ask 2 other nodes in order to get to chose between two degrees'
@@ -465,13 +509,24 @@ class Simulation:
         plt.show()
 
     def get_degree_result(self):
-        x=range(1000)
-        y=list()
-        for i in range(1000):
-            
-            y.append(self.DG.degree(i))
-        plt.plot(x,self.temp_list)
-        plt.show()
+        numb=len(self.DG.nodes())
+        x=range(numb)
+        self.y=list()
+        for i in range(self.DG_last_id+1):
+            #x.append(i)
+            if i in self.DG.nodes():
+                self.y.append(len(self.DG.node[i][self.simulation_protocol].outbound)+len(self.DG.node[i][self.simulation_protocol].inbound))
+            else:
+                self.y.append(0)
+        # plt.plot(x,y)
+        # plt.show()
+        # plt.cla()
+        # plt.clf()
+        # z=list()
+        # for i in self.DG.nodes():
+        #     z.append(len(self.DG.node[i][self.simulation_protocol].outbound))
+        # plt.plot(x,z)
+        # plt.show()
         # x=10
         # del_nodes = random.sample(list(rg.nodes()),x)
         # for node in del_nodes:

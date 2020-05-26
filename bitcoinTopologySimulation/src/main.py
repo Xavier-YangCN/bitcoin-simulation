@@ -34,6 +34,7 @@ def big_simulation_bitcoin():
     #outbound_distributions = ['const13_125', '1percent']
     outbound_distributions = ['const8_125']
     connection_strategy = ['stand_bc']
+    yy=list()
     # connection_strategy = ['stand_bc', 'p2c_min', 'p2c_max', 'geo_bc', 'no_geo_bc]
     max_outbound_connections = [8]
     for outbound_distribution in outbound_distributions:
@@ -50,7 +51,14 @@ def big_simulation_bitcoin():
                         y.append(s.run(t_start=t_start, t_end=t_end, n_iterations=n_iterations, plot_first_x_graphs=plot_first_x_graphs,
                                     #avg_paths_after_n_iterations=avg_paths_after_n_iterations,
                                     avg_paths_after_n_iterations=[],
-                                    MAX_OUTBOUND_CONNECTIONS=outbound_number, numb_nodes=10000,get_connectivity_result=1000))
+                                    MAX_OUTBOUND_CONNECTIONS=outbound_number, numb_nodes=30000,get_connectivity_result=3000))
+                        if len(yy)==0:
+                            yy=np.array(s.y)
+                        else:
+                            yy=np.sum([yy,np.array(s.y)],axis=0)
+                    yy=[i/10 for i in yy]
+                    plt.plot(range(3000),yy)
+                    plt.show()
                     # if len(y) > 0:
                     #     plot_distribution(initial_min[: len(y)], y)
 
