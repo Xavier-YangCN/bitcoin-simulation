@@ -64,7 +64,7 @@ class Simulation:
         max_reconnect_rate = 0
         #max_die_rate = 0.01
         max_die_rate = 0
-        Pa=0.75
+        Pa=1
         finish_simulation_counter_max = 2000
         finish_simulation_counter = 0
 
@@ -123,14 +123,15 @@ class Simulation:
             #     #print(nx.is_connected(self.DG))
             #     return
 
-            if (self.DG_last_id==get_connectivity_result-1):
-                #self.get_connectivity_result()
-                self.get_degree_result()
-                return 0
-
-            # if (len(self.DG.nodes())>=get_connectivity_result):
+            # if (self.DG_last_id==get_connectivity_result-1):
+            #     #self.get_connectivity_result()
             #     self.get_degree_result()
-            #     return
+            #     return 0
+
+            if (len(self.DG.nodes())>=get_connectivity_result):
+                #self.get_shortest_path_result()
+                self.get_clustering()
+                return
             # if (ii in avg_paths_after_n_iterations) and (finish_simulation_counter == 0):
             #     # self.whiteboard.avg_path_length_log()
             #     self.whiteboard.plot_degree()
@@ -535,6 +536,31 @@ class Simulation:
         #     print("connected")
         # else:
         #     print("disconnected")
+    def get_shortest_path_result(self):
+        d=nx.shortest_path_length(self.DG)
+        d=dict(d)
+        ans=dict()
+        for i in self.DG.nodes():
+            for j in self.DG.nodes():
+                if d[i][j] in ans.keys():
+                    ans[d[i][j]]+=1
+                else:
+                    ans[d[i][j]]=1
+        for i in ans.keys():
+            ans[i]=ans[i]/2
+        plt.bar(list(ans.keys()),list(ans.values()))
+        plt.show()
+    def get_clustering(self):
+        G=self.DG
+        ans=dict()
+        for node in G.nodes():
+            temp=G.degree(node)/len(self.DG.node[node][self.simulation_protocol].addrMan)
+            if temp in ans.keys():
+                ans[temp]+=1
+            else:
+                ans[temp]=1
+        plt.scatter(list(ans.keys()),list(ans.values()))
+        plt.show()
 
 
 
