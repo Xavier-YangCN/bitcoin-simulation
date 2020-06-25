@@ -554,7 +554,12 @@ class Simulation:
         G=self.DG
         ans=dict()
         for node in G.nodes():
-            temp=G.degree(node)/len(self.DG.node[node][self.simulation_protocol].addrMan)
+            num=0
+            for i in self.DG.node[node][self.simulation_protocol].addrMan:
+                for j in self.DG.node[node][self.simulation_protocol].addrMan:
+                    if i!=j and G.has_edge(i,j):
+                        num+=1
+            temp=num/(len(self.DG.node[node][self.simulation_protocol].addrMan)*(len(self.DG.node[node][self.simulation_protocol].addrMan)-1))
             if temp in ans.keys():
                 ans[temp]+=1
             else:
