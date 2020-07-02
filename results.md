@@ -4,7 +4,7 @@ refer to the thesis
 
 ## the probability of connection
 
-![](assets\prob_of_connectivity.png)
+<img src="assets\prob_of_connectivity.png" />
 
 y-axis: the probability that the network is full-connected
 
@@ -18,7 +18,7 @@ my simulation result without fitting the curve
 
 ### Pa=0.9
 
-![](assets\fig1.png)<img src="assets\fig2.png" style="zoom:60%;" />
+<img src="assets\fig1.png" /><img src="assets\fig2.png" style="zoom:60%;" />
 
 ### Pa=0.75
 
@@ -28,12 +28,12 @@ my simulation result without fitting the curve
 
 ## shortest path
 
-![](assets\fig5.png)<img src="assets\fig6.png" style="zoom:60%;" />
+<img src="assets\fig5.png" /><img src="assets\fig6.png" style="zoom:60%;" />
 
 the difference of the two results is that: in the original thesis, it counts every pair twice.
 
 ## clustering coefficient
 
-![](assets\fig7.png)<img src="assets\cluster2.png" style="zoom:72%;" />
+<img src="assets\fig7.png" /><img src="assets\cluster2.png" style="zoom:72%;" />
 
 there is some difference but I still don't find the reason..
